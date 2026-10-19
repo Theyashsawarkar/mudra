@@ -1,0 +1,3 @@
+.plugin-mudra button.tab { padding: 3px 8px; border-radius: 8px; font-size: 11.5px; font-weight: 500;
+  background: none; border: none; box-shadow: none; color: @overlay1; }
+.plugin-mudra button.tab:checked { background: alpha(white, 0.08); color: @text; }
