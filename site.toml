@@ -1,0 +1,8 @@
+# The project website (docs/, GitHub Pages): built by scripts/build-site.py
+name = "mudra"
+sanskrit = "मुद्रा"
+meaning = "gesture"
+tagline = "Search every keybinding (sway, tmux, kitty, zed, rmpc, tools...) by what it does; real key caps; Enter runs it."
+color = "lavender"
+kind = "a Vyom tool"
+logo = "assets/logo.svg"
