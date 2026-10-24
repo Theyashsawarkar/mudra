@@ -2,6 +2,25 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
+## v0.3.0 -- 2026-10-24
+
+- **Search by keys**: a query that names a modifier (`ctrl+h`, `super q`,
+  `alt 1`, `prefix s`) finds the bindings with those keys, exact ones
+  first; a capital letter counts as Shift.
+- **Every word on its own, in any order**, and the app's name is searchable:
+  "tmux kill" finds tmux's kill bindings (it found nothing), "wifi" finds
+  Wi-Fi. Words as written rank first; loose matching ("vol" in "quick
+  settings") no longer pulls in noise.
+- **Ranked, not grouped, while searching**: one list, best match first, the
+  app as a badge on each row (grouped by app only with an empty box). The
+  best match used to sit in whichever app group came first.
+- **Tabs numbered (Vyom 0.4.0), most bindings first**, all of them: the
+  app you jump to most gets the low number, and none is left out (it
+  stopped at nine apps).
+- Key caps in the theme's colours (they were fixed Catppuccin); "or" between
+  alternatives (`Ctrl+Tab or Ctrl+Shift+Tab`) instead of a "then" chord.
+- Icons and colours for nāda, vesha, vinyasa and anumati bindings.
+
 ## v0.2.0 -- 2026-10-24
 
 - App tabs switch like every Vyom tool's tabs (Vyom 0.3.0): `Ctrl+H` / `Ctrl+L` for

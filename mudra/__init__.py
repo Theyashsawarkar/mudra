@@ -19,13 +19,22 @@ from vyom import Plugin as Base
 # keybind: Vyom/keybindings | Ctrl+C | Copy the selected keybinding's keys
 
 COLORS = {"Sway": "sky", "Tmux": "teal", "Kitty": "pink", "Zed": "blue", "rmpc": "mauve", "Kernel": "red",
-          "Vyom": "lavender", "Vayu": "lavender"}
+          "Vyom": "lavender", "Vayu": "lavender", "Nada": "peach", "Vesha": "yellow", "Vinyasa": "mauve",
+          "Anumati": "red"}
 ICONS = {"Sway": "\U000f05a8", "Tmux": "", "Kitty": "\U000f011b", "Zed": "\U000f0a1e", "rmpc": "\U000f075a",
-         "Kernel": "\U000f1053", "Vyom": "\U000f0493", "Vayu": "\U000f0493"}
+         "Kernel": "\U000f1053", "Vyom": "\U000f0493", "Vayu": "\U000f0493", "Nada": "\U000f075a",
+         "Vesha": "\U000f0004", "Vinyasa": "\U000f0493", "Anumati": "\U000f0483"}
 
 
 def keycaps(keys):
-    """'Super+Shift+q' -> key caps (Pango); 'Ctrl+a Enter' -> a chord."""
+    """'Super+Shift+q' -> key caps (Pango, in the theme's colours, like every
+    Vyom footer); 'Ctrl+a Enter' -> a chord."""
+    try:
+        from vyom.panel import KEYCAP as cap
+    except ImportError:   # Vyom before 0.4: its old fixed colours
+        cap = {"bg": "#313244", "fg": "#bac2de", "dim": "#6c7086"}
+    if " / " in keys:   # alternatives: "Ctrl+Tab / Ctrl+Shift+Tab"
+        return f" <span foreground='{cap['dim']}'>or</span> ".join(keycaps(k) for k in keys.split(" / "))
     out = []
     for chord in keys.split(" "):
         if not chord:
@@ -33,9 +42,36 @@ def keycaps(keys):
         caps = []
         for k in re.split(r"\+(?=.)", chord):
             k = k if len(k) > 1 else k.upper()
-            caps.append(f"<span background='#313244' foreground='#bac2de' font_family='JetBrainsMono Nerd Font'> {GLib.markup_escape_text(k)} </span>")
+            caps.append(f"<span background='{cap['bg']}' foreground='{cap['fg']}' font_family='JetBrainsMono Nerd Font'>"
+                        f" {GLib.markup_escape_text(k)} </span>")
         out.append(" ".join(caps))
-    return " <span foreground='#6c7086'>then</span> ".join(out)
+    return f" <span foreground='{cap['dim']}'>then</span> ".join(out)
+
+
+MOD_WORDS = {"super": "super", "win": "super", "mod": "super", "ctrl": "ctrl", "control": "ctrl",
+             "alt": "alt", "meta": "alt", "shift": "shift", "prefix": "prefix"}
+
+
+def key_query(q):
+    """'ctrl+h', 'super q', 'alt 1', 'prefix s' -> the set of key parts it
+    names, when it looks like keys (it names a modifier); else None."""
+    parts = [p for p in re.split(r"[\s+]+", q.lower().strip()) if p]
+    if len(parts) < 2 or not any(p in MOD_WORDS and len(p) > 1 for p in parts):
+        return None
+    return {MOD_WORDS.get(p, p) for p in parts}
+
+
+def key_parts(keys):
+    """A binding's keys as a set: 'Ctrl+a S' -> {prefix, shift, s} (a capital
+    letter is Shift and the letter)."""
+    keys = keys.replace("Ctrl+a ", "prefix+").replace("Enter", "Return")
+    parts = set()
+    for p in re.split(r"[\s+/]+", keys):
+        if len(p) == 1 and p.isupper():
+            parts |= {"shift", p.lower()}
+        elif p:
+            parts.add(MOD_WORDS.get(p.lower(), p.lower()))
+    return parts
 
 
 def from_sway():
@@ -61,7 +97,7 @@ def from_sway():
 
 class Plugin(Base):
     name, title, icon, color = "mudra", "Keybindings", "\U000f030c", "lavender"
-    placeholder = "What do you want to do?   e.g. kill window, volume, screenshot"
+    placeholder = "What do you want to do, or which keys?   e.g. kill window · screenshot · ctrl+h · super q"
     preview = True
     preview_width = 300
     hints = [Hint("Enter", "run it"), Hint("Ctrl+C", "copy keys")]
@@ -88,8 +124,13 @@ class Plugin(Base):
 
     def build_tabs(self):
         """One tab per app that has keybindings (Ctrl+H/L, Ctrl+1..9: Vyom)."""
-        sources = ["all"] + sorted({e["source"] for e in self.entries}, key=lambda s: (s not in COLORS, s))
-        self.set_tabs([(s, "All" if s == "all" else s) for s in sources[:10]], self.tab)
+        # Most bindings first (Sway, Tmux, Vyom...): the ones you jump to get
+        # the low numbers. All of them, not just ten (Ctrl+Tab reaches the rest).
+        count = {}
+        for e in self.entries:
+            count[e["source"]] = count.get(e["source"], 0) + 1
+        sources = ["all"] + sorted(count, key=lambda s: (-count[s], s))
+        self.set_tabs([(s, "All" if s == "all" else s) for s in sources], self.tab)
         return False
 
     def opened(self, args):
@@ -99,32 +140,58 @@ class Plugin(Base):
     def search(self, q):
         if not self.loaded:
             self.load()
+        q = q.strip()
+        kq = key_query(q) if q else None
         scored = []
         for i, e in enumerate(self.entries):
             if self.tab != "all" and e["source"] != self.tab:
                 continue
-            text = f"{e.get('desc', '')} {e.get('scope') or ''}"
-            s = util.fuzzy(q, text) if q else 0
-            if s is None:
-                k = util.fuzzy(q, e.get("keys", ""), loose=False)
-                if k is None:
-                    continue
-                s = k / 2
             default = e.get("origin") == "default"
-            scored.append((-(s or 0) + (5 if default else 0), i, e))
+            if not q:
+                scored.append((5 if default else 0, i, e))
+                continue
+            if kq is not None:   # typed keys: bindings whose keys hold all of them
+                parts = key_parts(e.get("keys", ""))
+                if kq <= parts:
+                    scored.append((len(parts) - len(kq) + (5 if default else 0), i, e))
+                continue
+            # What it does, where, and in which app ("tmux kill" finds tmux's)
+            text = f"{e.get('desc', '')} {e.get('scope') or ''} {e['source']}"
+            s = 0
+            low = text.lower().replace("-", "")   # "wifi" finds "Wi-Fi"
+            for word in q.lower().replace("-", "").split():   # every word, anywhere ("tmux kill", "window kill")
+                if word in low:              # as written: best
+                    s += 100 + (50 if re.search(rf"\b{re.escape(word)}", low) else 0)
+                    continue
+                w = util.fuzzy(word, text, loose=False)
+                if w is None:
+                    s = None
+                    break
+                s += w
+            if s is None:
+                s = util.fuzzy(q, e.get("keys", ""), loose=False)
+                if s is None:
+                    continue
+                s /= 2
+            scored.append((-s + (5 if default else 0), i, e))
         scored.sort(key=lambda t: (t[0], t[1]))
+        if q:   # searching: one list, best first, the app on each row
+            return [self.row(e, badge=True) for _, _, e in scored[:300]]
         rows, by_src = [], {}
-        for _, _, e in scored[:300]:
+        for _, _, e in scored:
             by_src.setdefault(e["source"], []).append(e)
         for src, items in by_src.items():
-            rows.append(Section(src))
-            for e in items:
-                scope = " · ".join(x for x in (e.get("scope"), "built-in" if e.get("origin") == "default" else "") if x)
-                rows.append(Row(GLib.markup_escape_text(e.get("desc", "")), GLib.markup_escape_text(scope),
-                                icon=ICONS.get(src, "\U000f030c"), color=COLORS.get(src, "gray"),
-                                meta=keycaps(e.get("keys", "")), markup=True, dim=e.get("origin") == "default",
-                                data=e))
+            rows.append(Section(f"{src} · {len(items)}"))
+            rows += [self.row(e) for e in items]
         return rows
+
+    def row(self, e, badge=False):
+        src = e["source"]
+        scope = " · ".join(x for x in (e.get("scope"), "built-in" if e.get("origin") == "default" else "") if x)
+        return Row(GLib.markup_escape_text(e.get("desc", "")), GLib.markup_escape_text(scope),
+                   icon=ICONS.get(src, "\U000f030c"), color=COLORS.get(src, "gray"),
+                   meta=keycaps(e.get("keys", "")), markup=True, dim=e.get("origin") == "default",
+                   badge=src if badge else "", badge_color=COLORS.get(src, "gray"), data=e)
 
     def build_preview(self, row):
         e = row.data

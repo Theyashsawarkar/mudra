@@ -41,8 +41,11 @@ mudra is keybinding search for [Vyom](https://github.com/Theyashsawarkar/vyom): 
 
 ## Features
 
-- Every keybinding **by what it does** ("kill window", "volume"), with real **key caps** and chords (`Ctrl A then &`).
-- Grouped by app, with a tab per app (sway, tmux, kitty, zed, rmpc, Vyom…).
+- Every keybinding **by what it does** ("kill window", "volume"), with real **key caps** and chords (`Ctrl A then &`), in your theme's colours.
+- **Or by its keys**: type `ctrl+h`, `super q`, `alt 1`, `prefix s` and you get what those keys do, exact matches first.
+- **Every word counts, in any order**: "tmux kill", "window kill", "wifi" (finds Wi-Fi).
+- While you search, one list ranked by match with each binding's app on it; with an empty box, grouped by app.
+- A **numbered tab per app**, most bindings first (Sway, Tmux, Zed, Vyom…): `Ctrl+2` is the second, `Ctrl+Tab` the next.
 - `Enter` **runs the binding**: sway ones through swaymsg, tmux ones replayed into your most recent tmux client; anything else copies its keys.
 - Bindings come from a command printing JSON (Vayu's `keybind-search.py --json`); without one it reads sway's own config.
 - Keyboard first: every action has a key, shown in the footer; the mouse works too.
@@ -86,7 +89,7 @@ Open it with `vyom mudra` (or your key). Type to search; the footer always shows
 | `Ctrl+C` | Copy the selected keybinding's keys |
 | `Esc` | Close the panel |
 
-Every Vyom panel also has `Up`/`Down` (or `Ctrl+K`/`Ctrl+J`) to move, `Page Up`/`Page Down` to jump `Tab` to switch to the next tool, and `Ctrl+H`/`Ctrl+L` (or `Ctrl+1..9`) to switch tabs.
+Every Vyom panel also has `Up`/`Down` (or `Ctrl+K`/`Ctrl+J`) to move, `Page Up`/`Page Down` to jump, `Tab`/`Shift+Tab` to switch to the next/previous tool, and `Ctrl+Tab`/`Ctrl+Shift+Tab` (or `Ctrl+H`/`Ctrl+L`) to switch tabs, or `Ctrl` with the number shown on a tab.
 
 ## Configuration
 
