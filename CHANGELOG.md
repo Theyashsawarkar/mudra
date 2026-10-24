@@ -2,6 +2,11 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
+## v0.3.1 -- 2026-10-24
+
+- pramana's keys (the polkit password prompt) show with their own colour
+  and a lock icon.
+
 ## v0.3.0 -- 2026-10-24
 
 - **Search by keys**: a query that names a modifier (`ctrl+h`, `super q`,
