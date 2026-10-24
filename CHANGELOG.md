@@ -2,6 +2,10 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
+## v0.3.2 -- 2026-10-24
+
+- drishya's keys (the video player) show with their own colour and icon.
+
 ## v0.3.1 -- 2026-10-24
 
 - pramana's keys (the polkit password prompt) show with their own colour

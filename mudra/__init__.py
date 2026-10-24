@@ -20,11 +20,11 @@ from vyom import Plugin as Base
 
 COLORS = {"Sway": "sky", "Tmux": "teal", "Kitty": "pink", "Zed": "blue", "rmpc": "mauve", "Kernel": "red",
           "Vyom": "lavender", "Vayu": "lavender", "Nada": "peach", "Vesha": "yellow", "Vinyasa": "mauve",
-          "Anumati": "red", "Pramana": "yellow"}
+          "Anumati": "red", "Pramana": "yellow", "Drishya": "sky"}
 ICONS = {"Sway": "\U000f05a8", "Tmux": "", "Kitty": "\U000f011b", "Zed": "\U000f0a1e", "rmpc": "\U000f075a",
          "Kernel": "\U000f1053", "Vyom": "\U000f0493", "Vayu": "\U000f0493", "Nada": "\U000f075a",
          "Vesha": "\U000f0004", "Vinyasa": "\U000f0493", "Anumati": "\U000f0483",
-         "Pramana": "\U000f033e"}
+         "Pramana": "\U000f033e", "Drishya": "\U000f0567"}
 
 
 def keycaps(keys):
