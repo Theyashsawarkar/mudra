@@ -10,14 +10,13 @@ else copies its keys.
 import json
 import re
 
-from gi.repository import GLib, Gtk
+from gi.repository import GLib
 
 from vyom import Hint, Row, Section, ui, util
 from vyom import Plugin as Base
 
 # keybind: Vyom/keybindings | Enter | Run the selected keybinding (sway and tmux), else copy its keys
 # keybind: Vyom/keybindings | Ctrl+C | Copy the selected keybinding's keys
-# keybind: Vyom/keybindings | Ctrl+1..9 | Show all, or one app's keybindings
 
 COLORS = {"Sway": "sky", "Tmux": "teal", "Kitty": "pink", "Zed": "blue", "rmpc": "mauve", "Kernel": "red",
           "Vyom": "lavender", "Vayu": "lavender"}
@@ -65,16 +64,14 @@ class Plugin(Base):
     placeholder = "What do you want to do?   e.g. kill window, volume, screenshot"
     preview = True
     preview_width = 300
-    hints = [Hint("Enter", "run it"), Hint("Ctrl+C", "copy keys"), Hint("Ctrl+1-9", "app")]
+    hints = [Hint("Enter", "run it"), Hint("Ctrl+C", "copy keys")]
     empty_text = "No keybinding does that"
 
     def __init__(self, vyom, conf):
         super().__init__(vyom, conf)
         self.entries = []
         self.loaded = False
-        self.app = "all"
-        self.tabs = {}
-        self.tab_box = None
+        self.tab = "all"
 
     def load(self):
         cmd = self.conf.get("source_command") or ("keybind-search.py --json" if util.have("keybind-search.py") else "")
@@ -89,36 +86,11 @@ class Plugin(Base):
         self.loaded = True
         GLib.idle_add(self.build_tabs)
 
-    def header_extra(self):
-        self.tab_box = Gtk.Box(spacing=2)
-        return self.tab_box
-
     def build_tabs(self):
-        child = self.tab_box.get_first_child()
-        while child:
-            nxt = child.get_next_sibling()
-            self.tab_box.remove(child)
-            child = nxt
-        self.tabs = {}
+        """One tab per app that has keybindings (Ctrl+H/L, Ctrl+1..9: Vyom)."""
         sources = ["all"] + sorted({e["source"] for e in self.entries}, key=lambda s: (s not in COLORS, s))
-        group = None
-        for s in sources[:9]:
-            b = Gtk.ToggleButton(label="All" if s == "all" else s)
-            b.add_css_class("tab")
-            b.set_can_focus(False)
-            if group is None:
-                group = b
-            else:
-                b.set_group(group)
-            b.connect("toggled", lambda btn, k=s: btn.get_active() and self.set_app(k))
-            self.tabs[s] = b
-            self.tab_box.append(b)
-        (self.tabs.get(self.app) or self.tabs["all"]).set_active(True)
+        self.set_tabs([(s, "All" if s == "all" else s) for s in sources[:10]], self.tab)
         return False
-
-    def set_app(self, s):
-        self.app = s
-        self.refresh()
 
     def opened(self, args):
         super().opened(args)
@@ -129,7 +101,7 @@ class Plugin(Base):
             self.load()
         scored = []
         for i, e in enumerate(self.entries):
-            if self.app != "all" and e["source"] != self.app:
+            if self.tab != "all" and e["source"] != self.tab:
                 continue
             text = f"{e.get('desc', '')} {e.get('scope') or ''}"
             s = util.fuzzy(q, text) if q else 0
@@ -212,11 +184,5 @@ class Plugin(Base):
         if "ctrl" in mods and name == "c" and row is not None:
             util.copy(row.data.get("keys", ""))
             self.set_status("copied")
-            return True
-        if "ctrl" in mods and len(name) == 1 and name.isdigit() and name != "0":
-            keys = list(self.tabs)
-            i = int(name) - 1
-            if i < len(keys):
-                self.tabs[keys[i]].set_active(True)
             return True
         return False

@@ -2,6 +2,12 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
+## v0.2.0 -- 2026-10-24
+
+- App tabs switch like every Vyom tool's tabs (Vyom 0.3.0): `Ctrl+H` / `Ctrl+L` for
+  the previous / next app, `Ctrl+1..9` and `Ctrl+0` by number (now up to ten apps,
+  was nine). Needs Vyom 0.3.0.
+
 ## v0.1.2 -- 2026-10-21
 
 - A website (GitHub Pages, https://theyashsawarkar.github.io/mudra/): the README as a home page, the
