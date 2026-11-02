@@ -2,6 +2,13 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
+## v0.4.0 -- 2026-11-02
+
+- **Opens at once.** It read every config on each open, a blank panel for
+  several seconds. Now it reads ahead when Vyom starts, opens on what it knows,
+  and catches up behind the panel. A failed read keeps what it has instead of
+  falling back to Sway's keys only.
+
 ## v0.3.2 -- 2026-10-24
 
 - drishya's keys (the video player) show with their own colour and icon.

@@ -9,9 +9,9 @@ else copies its keys.
 """
 import json
 import re
+import threading
 
 from gi.repository import GLib
-
 from vyom import Hint, Row, Section, ui, util
 from vyom import Plugin as Base
 
@@ -109,19 +109,33 @@ class Plugin(Base):
         self.entries = []
         self.loaded = False
         self.tab = "all"
+        # read ahead, so even the first open has them
+        threading.Thread(target=self.load, daemon=True).start()
+
+    def read_entries(self):
+        """Every binding, or None when the source can't say."""
+        cmd = self.conf.get("source_command") or ("keybind-search.py --json" if util.have("keybind-search.py") else "")
+        if not cmd:
+            return None
+        code, out = util.run(cmd, timeout=20)
+        try:
+            return (json.loads(out) if code == 0 else None) or None
+        except ValueError:
+            return None
 
     def load(self):
-        cmd = self.conf.get("source_command") or ("keybind-search.py --json" if util.have("keybind-search.py") else "")
-        entries = []
-        if cmd:
-            code, out = util.run(cmd, timeout=20)
-            try:
-                entries = json.loads(out) if code == 0 else []
-            except ValueError:
-                entries = []
-        self.entries = entries or from_sway()
+        self.entries = self.read_entries() or self.entries or from_sway()
         self.loaded = True
         GLib.idle_add(self.build_tabs)
+
+    def reload_in_background(self):
+        """Reading every config takes seconds: the panel opens at once on what
+        it knows, and catches up here. A failed read keeps what it has."""
+        entries = self.read_entries()
+        if entries and entries != self.entries:
+            self.entries = entries
+            GLib.idle_add(self.build_tabs)
+            GLib.idle_add(self.refresh)
 
     def build_tabs(self):
         """One tab per app that has keybindings (Ctrl+H/L, Ctrl+1..9: Vyom)."""
@@ -136,11 +150,14 @@ class Plugin(Base):
 
     def opened(self, args):
         super().opened(args)
-        self.loaded = False  # bindings change as you edit configs: re-read on every open
+        self.loaded = False  # bindings change as you edit configs: re-read on every open, behind the panel
 
     def search(self, q):
-        if not self.loaded:
+        if not self.entries:
             self.load()
+        elif not self.loaded:
+            self.loaded = True
+            threading.Thread(target=self.reload_in_background, daemon=True).start()
         q = q.strip()
         kq = key_query(q) if q else None
         scored = []
