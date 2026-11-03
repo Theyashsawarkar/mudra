@@ -6,6 +6,15 @@
   </picture>
 </p>
 
+<!-- identity -->
+<p align="center">
+  <b>यतो हस्तस्ततो दृष्टिर्यतो दृष्टिस्ततो मनः ।<br>
+  यतो मनस्ततो भावो यतो भावस्ततो रसः ॥</b><br>
+  <i>Where the hand goes the eyes follow; where the eyes go, the mind; where the mind goes, feeling; and where feeling goes, delight.</i><br>
+  <sub>Abhinaya Darpaṇa, c. v. 37</sub>
+</p>
+<!-- /identity -->
+
 <p align="center">
   <b>Search every keybinding (sway, tmux, kitty, zed, rmpc, tools...) by what it does; real key caps; Enter runs it.</b><br>
   Keybinding search. A tool for <a href="https://github.com/Theyashsawarkar/vyom">Vyom</a>, keyboard-driven panels for Wayland.

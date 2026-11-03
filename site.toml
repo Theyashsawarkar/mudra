@@ -6,3 +6,6 @@ tagline = "Search every keybinding (sway, tmux, kitty, zed, rmpc, tools...) by w
 color = "lavender"
 kind = "a Vyom tool"
 logo = "assets/logo.svg"
+shloka = "यतो हस्तस्ततो दृष्टिर्यतो दृष्टिस्ततो मनः ।\nयतो मनस्ततो भावो यतो भावस्ततो रसः ॥"
+shloka_meaning = "Where the hand goes the eyes follow; where the eyes go, the mind; where the mind goes, feeling; and where feeling goes, delight."
+shloka_source = "Abhinaya Darpaṇa, c. v. 37"
