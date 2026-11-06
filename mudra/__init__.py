@@ -140,7 +140,7 @@ class Plugin(Base):
     def build_tabs(self):
         """One tab per app that has keybindings (Ctrl+H/L, Ctrl+1..9: Vyom)."""
         # Most bindings first (Sway, Tmux, Vyom...): the ones you jump to get
-        # the low numbers. All of them, not just ten (Ctrl+Tab reaches the rest).
+        # the low numbers. All of them, not just ten (Tab reaches the rest).
         count = {}
         for e in self.entries:
             count[e["source"]] = count.get(e["source"], 0) + 1
