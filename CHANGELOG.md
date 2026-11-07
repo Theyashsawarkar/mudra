@@ -2,7 +2,19 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
-## Unreleased
+## v0.5.0 -- 2026-11-07
+
+- **A new look** (Vyom 0.6): each row starts with its app as a coloured chip,
+  always the same colour for the same app; the words you searched for are
+  peach; the keys sit at the right as real key caps, chords joined by "then".
+- **Clashes**: a key bound twice in the same app and scope (in your own
+  configs) gets a red "Clash" chip, and the preview says what else it does.
+- **Tabs with counts** ("Sway 106") on the biggest apps; at most ten tabs, so
+  `Ctrl+1..9` and `Ctrl+0` reach every one: the smallest apps share "Other".
+- **The preview** shows the keys as big caps, where the binding is defined
+  (file and line for sway, kitty and zed; the file for a tool's own keys),
+  what it does, and a Run it (`Enter`) and Copy keys (`Ctrl+C`) button.
+- Needs Vyom 0.6.0.
 
 - Every corner is rounded: the website's callouts.
 - A logo and a shloka at the top of the README and the website: every Vayu tool has them now.

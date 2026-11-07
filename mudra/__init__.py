@@ -10,21 +10,95 @@ else copies its keys.
 import json
 import re
 import threading
+import zlib
+from pathlib import Path
 
-from gi.repository import GLib
+from gi.repository import GLib, Gtk
 from vyom import Hint, Row, Section, ui, util
 from vyom import Plugin as Base
 
 # keybind: Vyom/keybindings | Enter | Run the selected keybinding (sway and tmux), else copy its keys
 # keybind: Vyom/keybindings | Ctrl+C | Copy the selected keybinding's keys
 
-COLORS = {"Sway": "sky", "Tmux": "teal", "Kitty": "pink", "Zed": "blue", "rmpc": "mauve", "Kernel": "red",
-          "Vyom": "lavender", "Vayu": "lavender", "Nada": "peach", "Vesha": "yellow", "Vinyasa": "mauve",
-          "Dvarapala": "red", "Pramana": "yellow", "Drishya": "sky"}
-ICONS = {"Sway": "\U000f05a8", "Tmux": "", "Kitty": "\U000f011b", "Zed": "\U000f0a1e", "rmpc": "\U000f075a",
-         "Kernel": "\U000f1053", "Vyom": "\U000f0493", "Vayu": "\U000f0493", "Nada": "\U000f075a",
-         "Vesha": "\U000f0004", "Vinyasa": "\U000f0493", "Dvarapala": "\U000f0483",
-         "Pramana": "\U000f033e", "Drishya": "\U000f0567"}
+# One colour per app, the same everywhere (its chip at the left of a row,
+# its tab, the preview). Never peach (what you searched for) or red (a clash).
+COLORS = {"Sway": "blue", "Tmux": "green", "Kitty": "pink", "Zed": "sky", "rmpc": "mauve", "Kernel": "rose",
+          "Vyom": "mauve", "Vayu": "lavender", "Nada": "teal", "Vesha": "lavender", "Vinyasa": "sky",
+          "Dvarapala": "rose", "Pramana": "lavender", "Drishya": "teal", "Vishvakarma": "pink", "Ekatva": "teal"}
+PALETTE = ["teal", "lavender", "sky", "pink", "rose", "blue", "mauve"]
+
+HOME = Path.home()
+# Where a binding is written, to say "Defined in <file>:<line>".
+CONFIGS = {"Sway": HOME / ".config/sway/config", "Kitty": HOME / ".config/kitty/kitty.conf",
+           "Zed": HOME / ".config/zed/keymap.json"}
+
+
+def app_color(src):
+    return COLORS.get(src) or PALETTE[zlib.crc32(src.encode()) % len(PALETTE)]
+
+
+def theme_hex(name, fallback):
+    """A theme colour (@peach...) as #rrggbb for Pango markup, read from the
+    loaded CSS through a label (main thread only)."""
+    try:
+        w = Gtk.Label()
+        w.add_css_class(f"t-{name}")
+        c = w.get_color()
+        return "#%02x%02x%02x" % (round(c.red * 255), round(c.green * 255), round(c.blue * 255))
+    except (AttributeError, TypeError):
+        return fallback
+
+
+def highlight(text, words, color):
+    """`text` escaped for Pango, every word of the query in it in `color`."""
+    low, marks = text.lower(), [False] * len(text)
+    for w in words:
+        if len(w) < 2:
+            continue
+        i = low.find(w)
+        while i >= 0:
+            for j in range(i, i + len(w)):
+                marks[j] = True
+            i = low.find(w, i + len(w))
+    out, i = [], 0
+    while i < len(text):
+        j = i
+        while j < len(text) and marks[j] == marks[i]:
+            j += 1
+        part = GLib.markup_escape_text(text[i:j])
+        out.append(f"<span foreground='{color}'>{part}</span>" if marks[i] else part)
+        i = j
+    return "".join(out)
+
+
+def clash_key(e):
+    """Bindings that collide: the same keys in the same app, scope and key
+    table, both from a config you wrote (a tool's own keys change with its
+    screen, and a built-in one is simply replaced by yours)."""
+    if e.get("origin") not in ("custom", "plugin"):
+        return []
+    return [(e["source"], e.get("scope") or "", e.get("table") or "", k.strip())
+            for k in e.get("keys", "").split(" / ") if k.strip()]
+
+
+def defined_in(e):
+    """'~/.config/sway/config:142' when the binding's line can be found,
+    else the file a tool's binding came from, else ''."""
+    path, cmd = CONFIGS.get(e["source"]), (e.get("command") or "").strip()
+    if path and cmd:
+        try:
+            lines = path.read_text().splitlines()
+        except OSError:
+            lines = []
+        for n, line in enumerate(lines, 1):
+            s = line.strip()
+            if s.startswith("#"):
+                continue
+            if (e["source"] == "Sway" and s.startswith("bind") and s.endswith(cmd)) or \
+               (e["source"] == "Kitty" and s.startswith("map ") and s.endswith(cmd)) or \
+               (e["source"] == "Zed" and f'"{cmd}"' in s):
+                return f"{str(path).replace(str(HOME), '~')}:{n}"
+    return e.get("file") or ""
 
 
 def keycaps(keys):
@@ -98,17 +172,20 @@ def from_sway():
 
 class Plugin(Base):
     name, title, icon, color = "mudra", "Keybindings", "\U000f030c", "lavender"
-    placeholder = "What do you want to do, or which keys?   e.g. kill window · screenshot · ctrl+h · super q"
+    placeholder = "What to do, or which keys…  kill window · ctrl+h"
     preview = True
-    preview_width = 300
+    preview_width = 330
     hints = [Hint("Enter", "run it"), Hint("Ctrl+C", "copy keys")]
     empty_text = "No keybinding does that"
 
     def __init__(self, vyom, conf):
         super().__init__(vyom, conf)
         self.entries = []
+        self.clashes = {}
+        self.small = set()
         self.loaded = False
         self.tab = "all"
+        self.peach = "#fab387"
         # read ahead, so even the first open has them
         threading.Thread(target=self.load, daemon=True).start()
 
@@ -123,8 +200,20 @@ class Plugin(Base):
         except ValueError:
             return None
 
+    def set_entries(self, entries):
+        by_key = {}
+        for e in entries:
+            for k in clash_key(e):
+                by_key.setdefault(k, []).append(e)
+        clashes = {}
+        for k, es in by_key.items():
+            if len({id(e) for e in es}) > 1:
+                for e in es:
+                    clashes.setdefault(id(e), []).extend(o for o in es if o is not e)
+        self.entries, self.clashes = entries, clashes
+
     def load(self):
-        self.entries = self.read_entries() or self.entries or from_sway()
+        self.set_entries(self.read_entries() or self.entries or from_sway())
         self.loaded = True
         GLib.idle_add(self.build_tabs)
 
@@ -133,23 +222,36 @@ class Plugin(Base):
         it knows, and catches up here. A failed read keeps what it has."""
         entries = self.read_entries()
         if entries and entries != self.entries:
-            self.entries = entries
+            self.set_entries(entries)
             GLib.idle_add(self.build_tabs)
             GLib.idle_add(self.refresh)
 
     def build_tabs(self):
-        """One tab per app that has keybindings (Ctrl+H/L, Ctrl+1..9: Vyom)."""
+        """One tab per app that has keybindings, with how many ("Sway 106";
+        Ctrl+H/L, Ctrl+1..9: Vyom)."""
         # Most bindings first (Sway, Tmux, Vyom...): the ones you jump to get
         # the low numbers. All of them, not just ten (Tab reaches the rest).
         count = {}
         for e in self.entries:
             count[e["source"]] = count.get(e["source"], 0) + 1
-        sources = ["all"] + sorted(count, key=lambda s: (-count[s], s))
-        self.set_tabs([(s, "All" if s == "all" else s) for s in sources], self.tab)
+        sources = sorted(count, key=lambda s: (-count[s], s))
+        # Ten tabs at most (Ctrl+1..9, Ctrl+0): the eight biggest apps, and
+        # the small ones together under "Other"; counts on the biggest few
+        # (more wouldn't fit the bar).
+        big, small = sources[:8], sources[8:]
+        if len(small) == 1:
+            big, small = sources, []
+        self.small = set(small)
+        tabs = [("all", f"All {len(self.entries)}")]
+        tabs += [(s, f"{s} {count[s]}" if i < 4 else s, f"{count[s]} keybindings") for i, s in enumerate(big)]
+        if small:
+            tabs.append(("other", "Other", ", ".join(small)))
+        self.set_tabs(tabs, self.tab)
         return False
 
     def opened(self, args):
         super().opened(args)
+        self.peach = theme_hex("peach", "#fab387")
         self.loaded = False  # bindings change as you edit configs: re-read on every open, behind the panel
 
     def search(self, q):
@@ -162,7 +264,9 @@ class Plugin(Base):
         kq = key_query(q) if q else None
         scored = []
         for i, e in enumerate(self.entries):
-            if self.tab != "all" and e["source"] != self.tab:
+            if self.tab == "other" and e["source"] not in self.small:
+                continue
+            if self.tab not in ("all", "other") and e["source"] != self.tab:
                 continue
             default = e.get("origin") == "default"
             if not q:
@@ -193,29 +297,49 @@ class Plugin(Base):
                 s /= 2
             scored.append((-s + (5 if default else 0), i, e))
         scored.sort(key=lambda t: (t[0], t[1]))
-        if q:   # searching: one list, best first, the app on each row
-            return [self.row(e, badge=True) for _, _, e in scored[:300]]
+        words = q.lower().split() if q and kq is None else []
+        if q:   # searching: one list, best first, the app's chip on each row
+            return [self.row(e, words) for _, _, e in scored[:300]]
         rows, by_src = [], {}
         for _, _, e in scored:
             by_src.setdefault(e["source"], []).append(e)
         for src, items in by_src.items():
-            rows.append(Section(f"{src} · {len(items)}"))
+            clash = sum(1 for e in items if id(e) in self.clashes)
+            rows.append(Section(src, len(items), f"{clash} clash{'es' if clash > 1 else ''}" if clash else ""))
             rows += [self.row(e) for e in items]
         return rows
 
-    def row(self, e, badge=False):
+    def row(self, e, words=()):
         src = e["source"]
         scope = " · ".join(x for x in (e.get("scope"), "built-in" if e.get("origin") == "default" else "") if x)
-        return Row(GLib.markup_escape_text(e.get("desc", "")), GLib.markup_escape_text(scope),
-                   icon=ICONS.get(src, "\U000f030c"), color=COLORS.get(src, "gray"),
-                   meta=keycaps(e.get("keys", "")), markup=True, dim=e.get("origin") == "default",
-                   badge=src if badge else "", badge_color=COLORS.get(src, "gray"), data=e)
+        return Row(highlight(e.get("desc", ""), words, self.peach), GLib.markup_escape_text(scope),
+                   icon=src, color=app_color(src), meta=keycaps(e.get("keys", "")), markup=True,
+                   dim=e.get("origin") == "default", chips=[("Clash", "red")] if id(e) in self.clashes else None,
+                   data=e)
+
+    def big_keys(self, keys):
+        """The keys as big caps: chords joined by "then", alternatives by "or"."""
+        box = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, column_spacing=6, row_spacing=6,
+                          max_children_per_line=12, homogeneous=False, valign=Gtk.Align.START)
+        box.add_css_class("chips")
+        for a, alt in enumerate(k for k in keys.split(" / ") if k):
+            if a:
+                box.append(ui.label("or", "mudra-then", valign=Gtk.Align.CENTER))
+            for c, chord in enumerate(x for x in alt.split(" ") if x):
+                if c:
+                    box.append(ui.label("then", "mudra-then", valign=Gtk.Align.CENTER))
+                for k in re.split(r"\+(?=.)", chord):
+                    box.append(ui.label(k if len(k) > 1 else k.upper(), "keycap", "mudra-bigcap"))
+        return box
 
     def build_preview(self, row):
         e = row.data
-        parts = [ui.chip(e["source"], COLORS.get(e["source"], "gray")), ui.title(e.get("desc", "")),
-                 ui.label(keycaps(e.get("keys", "")), markup=True, xalign=0, wrap=True)]
+        src = e["source"]
+        parts = [ui.chip(src, app_color(src)), ui.title(e.get("desc", "")), self.big_keys(e.get("keys", ""))]
         facts = []
+        where = defined_in(e)
+        if where:
+            facts.append(("Defined in", where))
         if e.get("scope"):
             facts.append(("Where", e["scope"]))
         if e.get("origin"):
@@ -224,10 +348,16 @@ class Plugin(Base):
         if facts:
             parts.append(ui.kv(facts))
         if e.get("command"):
-            parts.append(ui.mono(e["command"]))
-        runnable = self.runnable(e)
-        parts.append(ui.buttons([("Run it" if runnable else "Copy keys", lambda: self.run_entry(e), "primary")]))
-        return ui.vbox(*parts, spacing=10)
+            parts.append(ui.vbox(ui.label("Does", "kv-key", xalign=0), ui.mono(e["command"]), spacing=4))
+        others = self.clashes.get(id(e))
+        if others:
+            parts.append(ui.notice("Clash: these keys do two things here",
+                                   "Also: " + "; ".join(o.get("desc", "") for o in others[:3]), "red"))
+        btns = [("Run it" if self.runnable(e) else "Copy keys", lambda: self.run_entry(e), "primary", "", "Enter")]
+        if self.runnable(e):
+            btns.append(("Copy keys", lambda: self.copy_keys(e), "", "", "Ctrl+C"))
+        parts.append(ui.buttons(btns))
+        return ui.vbox(*parts, spacing=12)
 
     def runnable(self, e):
         return (e["source"] == "Sway" and e.get("command") and util.have("swaymsg")) or \
@@ -261,13 +391,16 @@ class Plugin(Base):
         util.copy(e.get("keys", ""))
         util.notify("Keybinding", f"Copied {e.get('keys', '')}", app="mudra")
 
+    def copy_keys(self, e):
+        util.copy(e.get("keys", ""))
+        self.set_status(f"copied {e.get('keys', '')}")
+
     def activate(self, row, mods):
         self.run_entry(row.data)
         return False
 
     def key(self, name, row, mods):
-        if "ctrl" in mods and name == "c" and row is not None:
-            util.copy(row.data.get("keys", ""))
-            self.set_status("copied")
+        if mods == {"ctrl"} and name == "c" and row is not None:
+            self.copy_keys(row.data)
             return True
         return False

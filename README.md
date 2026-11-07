@@ -24,7 +24,7 @@
   <a href="https://github.com/Theyashsawarkar/mudra/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Theyashsawarkar/mudra/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/Theyashsawarkar/mudra/releases"><img alt="Release" src="https://img.shields.io/github/v/release/Theyashsawarkar/mudra?color=cba6f7&label=release"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-f5e0dc"></a>
-  <a href="https://github.com/Theyashsawarkar/vyom"><img alt="Vyom 0.3+" src="https://img.shields.io/badge/vyom-0.3%2B-89b4fa"></a>
+  <a href="https://github.com/Theyashsawarkar/vyom"><img alt="Vyom 0.6+" src="https://img.shields.io/badge/vyom-0.6%2B-89b4fa"></a>
   <img alt="Python 3.11+" src="https://img.shields.io/badge/python-3.11%2B-a6e3a1">
   <img alt="Wayland" src="https://img.shields.io/badge/wayland-layer--shell-94e2d5">
 </p>
@@ -50,11 +50,14 @@ mudra is keybinding search for [Vyom](https://github.com/Theyashsawarkar/vyom): 
 
 ## Features
 
-- Every keybinding **by what it does** ("kill window", "volume"), with real **key caps** and chords (`Ctrl A then &`), in your theme's colours.
+- Every keybinding **by what it does** ("kill window", "volume"), the words you typed in peach, with real **key caps** at the right and chords joined by a quiet "then" (`Ctrl A then &`), in your theme's colours.
+- **Each app is a coloured chip** at the start of its rows (Sway, Tmux, Zed, Vyom…), always the same colour.
+- **Clashes stand out**: a key bound twice in the same app and scope gets a red "Clash" chip, and the preview says what else it does.
 - **Or by its keys**: type `ctrl+h`, `super q`, `alt 1`, `prefix s` and you get what those keys do, exact matches first.
 - **Every word counts, in any order**: "tmux kill", "window kill", "wifi" (finds Wi-Fi).
-- While you search, one list ranked by match with each binding's app on it; with an empty box, grouped by app.
-- A **numbered tab per app**, most bindings first (Sway, Tmux, Zed, Vyom…): `Ctrl+2` is the second, `Tab` the next.
+- While you search, one list ranked by match; with an empty box, grouped by app with a count on each group.
+- A **numbered tab per app**, most bindings first, with counts on the biggest (`Sway 106`); the smallest apps share an "Other" tab. `Ctrl+2` is the second, `Tab` the next.
+- The preview shows the keys as big caps, **where it's defined** (`~/.config/sway/config:142` for sway, kitty and zed; the file for a tool's own keys) and what it does, with **Run it** (`Enter`) and **Copy keys** (`Ctrl+C`) buttons.
 - `Enter` **runs the binding**: sway ones through swaymsg, tmux ones replayed into your most recent tmux client; anything else copies its keys.
 - Bindings come from a command printing JSON (Vayu's `keybind-search.py --json`); without one it reads sway's own config.
 - Keyboard first: every action has a key, shown in the footer; the mouse works too.
@@ -64,7 +67,7 @@ mudra is keybinding search for [Vyom](https://github.com/Theyashsawarkar/vyom): 
 
 ### Requirements
 
-- [Vyom](https://github.com/Theyashsawarkar/vyom) 0.3 or newer (Python 3.11+, PyGObject, GTK 4, [gtk4-layer-shell](https://github.com/wmww/gtk4-layer-shell), a Nerd Font)
+- [Vyom](https://github.com/Theyashsawarkar/vyom) 0.6 or newer (Python 3.11+, PyGObject, GTK 4, [gtk4-layer-shell](https://github.com/wmww/gtk4-layer-shell), a Nerd Font)
 - optional: swaymsg, tmux (running bindings)
 
 ### Install
