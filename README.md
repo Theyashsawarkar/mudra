@@ -56,7 +56,8 @@ mudra is keybinding search for [Vyom](https://github.com/Theyashsawarkar/vyom): 
 - **Or by its keys**: type `ctrl+h`, `super q`, `alt 1`, `prefix s` and you get what those keys do, exact matches first.
 - **Every word counts, in any order**: "tmux kill", "window kill", "wifi" (finds Wi-Fi).
 - While you search, one list ranked by match; with an empty box, grouped by app with a count on each group.
-- A **numbered tab per app**, most bindings first, with counts on the biggest (`Sway 106`); the smallest apps share an "Other" tab. `Ctrl+2` is the second, `Tab` the next.
+- **Vyom is one app with a section per tool** (`Vyom · ganit`, `Vyom · tarang`…), every panel's own keys first. A tool's name or title finds its keys: "ganit", "calculator", "tarang enter".
+- A **tab per app**, most bindings first (its count in the tooltip); the smallest apps share an "Other" tab. `Ctrl+2` is the second, `Tab` the next.
 - The preview shows the keys as big caps, **where it's defined** (`~/.config/sway/config:142` for sway, kitty and zed; the file for a tool's own keys) and what it does, with **Run it** (`Enter`) and **Copy keys** (`Ctrl+C`) buttons.
 - `Enter` **runs the binding**: sway ones through swaymsg, tmux ones replayed into your most recent tmux client; anything else copies its keys.
 - Bindings come from a command printing JSON (Vayu's `keybind-search.py --json`); without one it reads sway's own config.
@@ -101,7 +102,7 @@ Open it with `vyom mudra` (or your key). Type to search; the footer always shows
 | `Ctrl+C` | Copy the selected keybinding's keys |
 | `Esc` | Close the panel |
 
-Every Vyom panel also has `Up`/`Down` (or `Ctrl+K`/`Ctrl+J`) to move and `Page Up`/`Page Down` to jump; its tabs, its main kinds, switch with `Tab`/`Shift+Tab` (or `Ctrl+H`/`Ctrl+L`), or `Ctrl` with the number shown on a tab.
+Every Vyom panel also has `Up`/`Down` (or `Ctrl+K`/`Ctrl+J`) to move and `Page Up`/`Page Down` to jump; its tabs, its main kinds, switch with `Tab`/`Shift+Tab` (or `Ctrl+H`/`Ctrl+L`), or `Ctrl+1`..`Ctrl+9` for the first to the ninth.
 
 ## Configuration
 

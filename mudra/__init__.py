@@ -236,14 +236,14 @@ class Plugin(Base):
             count[e["source"]] = count.get(e["source"], 0) + 1
         sources = sorted(count, key=lambda s: (-count[s], s))
         # Ten tabs at most (Ctrl+1..9, Ctrl+0): the eight biggest apps, and
-        # the small ones together under "Other"; counts on the biggest few
-        # (more wouldn't fit the bar).
+        # the small ones together under "Other". Names only: each tab's count
+        # is in its tooltip and on its sections.
         big, small = sources[:8], sources[8:]
         if len(small) == 1:
             big, small = sources, []
         self.small = set(small)
-        tabs = [("all", f"All {len(self.entries)}")]
-        tabs += [(s, f"{s} {count[s]}" if i < 4 else s, f"{count[s]} keybindings") for i, s in enumerate(big)]
+        tabs = [("all", "All", f"{len(self.entries)} keybindings")]
+        tabs += [(s, s, f"{count[s]} keybindings") for s in big]
         if small:
             tabs.append(("other", "Other", ", ".join(small)))
         self.set_tabs(tabs, self.tab)
@@ -278,7 +278,7 @@ class Plugin(Base):
                     scored.append((len(parts) - len(kq) + (5 if default else 0), i, e))
                 continue
             # What it does, where, and in which app ("tmux kill" finds tmux's)
-            text = f"{e.get('desc', '')} {e.get('scope') or ''} {e['source']}"
+            text = f"{e.get('desc', '')} {e.get('scope') or ''} {e['source']} {self.tool_words(e)}"
             s = 0
             low = text.lower().replace("-", "")   # "wifi" finds "Wi-Fi"
             for word in q.lower().replace("-", "").split():   # every word, anywhere ("tmux kill", "window kill")
@@ -304,14 +304,49 @@ class Plugin(Base):
         for _, _, e in scored:
             by_src.setdefault(e["source"], []).append(e)
         for src, items in by_src.items():
-            clash = sum(1 for e in items if id(e) in self.clashes)
-            rows.append(Section(src, len(items), f"{clash} clash{'es' if clash > 1 else ''}" if clash else ""))
-            rows += [self.row(e) for e in items]
+            # Vyom is one app made of many tools: a section per tool, every
+            # panel's own keys first, the rest by name.
+            groups = [(src, "", items)]
+            if src == "Vyom":
+                by_tool = {}
+                for e in items:
+                    by_tool.setdefault(e.get("tool") or "vyom", []).append(e)
+                order = sorted(by_tool, key=lambda t: (t != "vyom", t))
+                groups = [("Vyom · every panel", "", by_tool[t]) if t == "vyom" else
+                          (f"Vyom · {t}", self.tool_title(t), by_tool[t]) for t in order]
+            for title, what, group in groups:
+                clash = sum(1 for e in group if id(e) in self.clashes)
+                note = " · ".join(x for x in (what, f"{clash} clash{'es' if clash > 1 else ''}" if clash else "") if x)
+                rows.append(Section(title, len(group), note))
+                rows += [self.row(e) for e in group]
         return rows
+
+    def tool_title(self, tool):
+        """A Vyom tool's title ("ganit" -> "Calculator")."""
+        if tool == "vyom":
+            return "every panel"
+        p = getattr(self.vyom, "plugins", {}).get(tool)
+        return getattr(p, "title", "") or ""
+
+    def tool_words(self, e):
+        """What a Vyom key is also found by: its tool's name and title."""
+        t = e.get("tool")
+        return f"{t} {self.tool_title(t)}" if t else ""
+
+    def where(self, e):
+        """Its row's second line: the Vyom tool, then the part of it
+        ("ganit · converter"), else the scope."""
+        scope, t = e.get("scope") or "", e.get("tool")
+        if t and t != "vyom":
+            part = scope[len(t):].strip(" -·") if scope.lower().startswith(t) else scope
+            if part.lower().replace("-", "") == self.tool_title(t).lower().replace("-", ""):
+                part = ""   # akashvani's "notifications" says what its title does
+            scope = " · ".join(x for x in (t, part) if x)
+        return scope
 
     def row(self, e, words=()):
         src = e["source"]
-        scope = " · ".join(x for x in (e.get("scope"), "built-in" if e.get("origin") == "default" else "") if x)
+        scope = " · ".join(x for x in (self.where(e), "built-in" if e.get("origin") == "default" else "") if x)
         return Row(highlight(e.get("desc", ""), words, self.peach), GLib.markup_escape_text(scope),
                    icon=src, color=app_color(src), meta=keycaps(e.get("keys", "")), markup=True,
                    dim=e.get("origin") == "default", chips=[("Clash", "red")] if id(e) in self.clashes else None,
@@ -340,8 +375,8 @@ class Plugin(Base):
         where = defined_in(e)
         if where:
             facts.append(("Defined in", where))
-        if e.get("scope"):
-            facts.append(("Where", e["scope"]))
+        if self.where(e):
+            facts.append(("Where", self.where(e)))
         if e.get("origin"):
             facts.append(("Kind", {"default": "built in", "custom": "yours", "plugin": "a plugin's",
                                    "script": "inside a tool"}.get(e["origin"], e["origin"])))

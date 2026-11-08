@@ -2,6 +2,15 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
+## v0.5.1 -- 2026-11-08
+
+- **Vyom is one group with a section per tool** (`Vyom · ganit`, `Vyom · tarang`…), every
+  panel's own keys first, each section noting what the tool is (Calculator, Wi-Fi…). A
+  row says which tool and part it belongs to (`ganit · converter`), and a tool's name or
+  title finds its keys: "ganit", "calculator", "tarang enter". Needs keybind-search.py
+  to tag Vyom keys with their tool (Vayu dotfiles, 2026-11-08).
+- Tabs show the app's name only; its count is in the tooltip and on its sections.
+
 ## v0.5.0 -- 2026-11-07
 
 - **A new look** (Vyom 0.6): each row starts with its app as a coloured chip,

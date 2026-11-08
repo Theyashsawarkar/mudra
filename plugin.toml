@@ -1,8 +1,8 @@
 name = "mudra"
 title = "Keybindings"
 description = "Search every keybinding (sway, tmux, kitty, zed, rmpc, tools...) by what it does; real key caps; Enter runs it."
-version = "0.5.0"
-vyom = "0.6.0"
+version = "0.5.1"
+vyom = "0.6.3"
 icon = "󰌌"
 color = "lavender"
 requires = []
