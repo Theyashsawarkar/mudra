@@ -14,3 +14,6 @@
 .plugin-mudra .mudra-bigcap { font-size: 16px; padding: 5px 12px; border-radius: 8px; color: @text;
   background: alpha(@surface0, 0.9); border: 1px solid alpha(white, 0.14); box-shadow: inset 0 -2px 0 alpha(@crust, 0.5); }
 .plugin-mudra .mudra-then { color: @overlay1; font-size: 12px; }
+
+/* The leader: the Space cap in the accent, in a sequence joined by › */
+.plugin-mudra .mudra-bigcap.mudra-lead { color: @accent; border-color: alpha(@accent, 0.45); }

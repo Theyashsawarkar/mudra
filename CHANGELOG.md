@@ -2,6 +2,23 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
+## v0.6.0 -- 2026-11-09
+
+- `Space u p` (show or hide the preview) now comes from Vyom core, which also remembers it per tool; the tool's own copy is gone.
+- **Vim keys** (Vyom 0.7, ADR 0008): NORMAL and INSERT modes, `Space` as the leader with a which-key strip, `?` and `Space ?` list every key, `Space Space` is a palette, counts (`5j`), `gg` / `G`, `H` / `L` for tabs. It opens in INSERT (search-first): type, then `Esc` for NORMAL. Needs Vyom 0.7.0.
+- Its keys are data (`mudra/vim.py`); `scripts/keybinds.py` writes the `# keybind:` lines and the README's key tables from them, and `--check` (CI) fails when they drift.
+- `y y` copies the keys (Ctrl+C still does in NORMAL), `o` opens the file that defines a key in $EDITOR at its line, `Space f c` shows only clashes, `Space f m` one mode, `Space f d` hides built-ins, `Space f k` searches by keys (`dd`, `gg`), `Space f l` the Leader tab, `Space y d` / `Space y c` copy the description / command, `Space r` reads every key again.
+- **Vim and leader keys**, for tools that follow the Space grammar (Vayu's
+  docs/KEYBINDINGS.md): bare letters keep their case (`g g` and `G` no longer look
+  alike), a leader sequence shows as caps joined by › with the Space cap in the accent,
+  and rows carry neutral `normal` / `insert` and `leader` chips (keybind-search.py
+  now sends `mode`, `leader` and `group`).
+- **`space y` searches by sequence**, in order (`spc y`, `<leader>y` too): the whole
+  group under it, shortest first. The preview shows the which-key path with group names.
+- **A Leader tab** with every Space key of every tool. Clashes now count per mode,
+  include a key that starts a longer one (`g` beside `g g`), and, in the Leader tab, a
+  shared leader group used for something else.
+
 ## v0.5.1 -- 2026-11-08
 
 - **Vyom is one group with a section per tool** (`Vyom · ganit`, `Vyom · tarang`…), every
