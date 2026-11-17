@@ -2,6 +2,10 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
+## v0.6.1 -- 2026-11-14
+
+- **No full read of every keybinding when Vyom starts.** It took 1.6 s of CPU in the middle of the login rush, while the first panels and apps were starting. The last read is kept on disk (`~/.cache/vyom/mudra-keybinds.json`) and loaded at once; the full read follows a minute later. Opening the panel re-reads in the background, as before. The first run ever (no saved read) still reads right away.
+
 ## v0.6.0 -- 2026-11-09
 
 - `Space u p` (show or hide the preview) now comes from Vyom core, which also remembers it per tool; the tool's own copy is gone.

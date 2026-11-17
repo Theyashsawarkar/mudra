@@ -358,8 +358,39 @@ class Plugin(Base):
         self.keys_only = False       # Space f k: the query is keys (dd, gg)
         self.peach = "#fab387"
         self.accent = "#cba6f7"
-        # read ahead, so even the first open has them
-        threading.Thread(target=self.load, daemon=True).start()
+        # Read ahead, so even the first open has them: the last read, kept on
+        # disk, at once; the real read (seconds of CPU) a minute later, after
+        # the login rush, when nothing is waiting for the CPU. Without a saved
+        # read (the first run), the real one right away, as before.
+        cached = self.read_cache()
+        if cached:
+            self.set_entries(cached)
+            self.loaded = True
+            GLib.idle_add(self.build_tabs)
+            GLib.timeout_add_seconds(60, lambda: (threading.Thread(target=self.reload_in_background,
+                                                                   daemon=True).start(), False)[1])
+        else:
+            threading.Thread(target=self.load, daemon=True).start()
+
+    CACHE = os.path.join(util.CACHE, "mudra-keybinds.json")
+
+    def read_cache(self):
+        try:
+            with open(self.CACHE) as f:
+                entries = json.load(f)
+            return entries if isinstance(entries, list) else None
+        except (OSError, ValueError):
+            return None
+
+    def write_cache(self, entries):
+        try:
+            os.makedirs(os.path.dirname(self.CACHE), exist_ok=True)
+            tmp = self.CACHE + ".tmp"
+            with open(tmp, "w") as f:
+                json.dump(entries, f)
+            os.replace(tmp, self.CACHE)
+        except OSError:
+            pass
 
     def read_entries(self):
         """Every binding, or None when the source can't say."""
@@ -368,9 +399,12 @@ class Plugin(Base):
             return None
         code, out = util.run(cmd, timeout=20)
         try:
-            return (json.loads(out) if code == 0 else None) or None
+            entries = (json.loads(out) if code == 0 else None) or None
         except ValueError:
             return None
+        if isinstance(entries, list):
+            self.write_cache(entries)
+        return entries
 
     def set_entries(self, entries):
         by_key = {}
