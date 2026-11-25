@@ -1,19 +1,19 @@
 /* mudra: many app tabs, so a little tighter than the shared tab style */
-.plugin-mudra button.tab { padding: 3px 8px; font-size: 11.5px; }
+.plugin-mudra button.tab { padding: 3px 10px; font-size: 11.5px; }
 
 /* Each row starts with its app as a coloured chip (the row's tile, holding
    the app's name instead of an icon), all the same width so the
    descriptions line up. */
-.plugin-mudra .list .row > .tile { min-width: 78px; min-height: 0; padding: 3px 4px; border-radius: 9px;
+.plugin-mudra .list .row > .tile { min-width: 78px; min-height: 0; padding: 3px 6px; border-radius: 999px;
   border: 1px solid alpha(currentColor, 0.4); }
-.plugin-mudra .list .row > .tile .glyph { font-family: "Inter", "Noto Sans", sans-serif; font-size: 12px;
+.plugin-mudra .list .row > .tile .glyph { font-family: "Adwaita Sans", "Inter", "Noto Sans", sans-serif; font-size: 12px;
   font-weight: 700; }
 .plugin-mudra .list .row > .tile.c-gray { border-color: alpha(white, 0.1); }
 
 /* The preview's keys: big caps, joined by a quiet "then" / "or". */
-.plugin-mudra .mudra-bigcap { font-size: 16px; padding: 5px 12px; border-radius: 8px; color: @text;
-  background: alpha(@surface0, 0.9); border: 1px solid alpha(white, 0.14); box-shadow: inset 0 -2px 0 alpha(@crust, 0.5); }
+.plugin-mudra .mudra-bigcap { font-size: 16px; padding: 5px 14px; border-radius: 12px; color: @text;
+  background: alpha(white, 0.10); border: 1px solid alpha(white, 0.12); box-shadow: inset 0 1px 0 alpha(white, 0.12); }
 .plugin-mudra .mudra-then { color: @overlay1; font-size: 12px; }
 
-/* The leader: the Space cap in the accent, in a sequence joined by › */
-.plugin-mudra .mudra-bigcap.mudra-lead { color: @accent; border-color: alpha(@accent, 0.45); }
+/* The leader: the Space cap filled near-white, in a sequence joined by › */
+.plugin-mudra .mudra-bigcap.mudra-lead { color: @crust; background: @accent; border-color: transparent; }
