@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <img alt="mudra: keybindings panel" src="assets/screenshots/mudra.png" width="100%">
+  <img alt="mudra: keybindings found by what they do, each with its key caps; the picked one's keys, where it is defined, what it runs and Run it" src="assets/screenshots/mudra.webp" width="100%">
 </p>
 
 > *Mudra* (मुद्रा) is Sanskrit for "gesture": a gesture with a meaning, which is what a key binding is.
