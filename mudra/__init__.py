@@ -12,6 +12,7 @@ import os
 import re
 import shutil
 import threading
+import time
 import zlib
 from pathlib import Path
 
@@ -358,6 +359,7 @@ class Plugin(Base):
         self.keys_only = False       # Space f k: the query is keys (dd, gg)
         self.peach = "#fab387"
         self.accent = "#cba6f7"
+        self.read_at = time.monotonic()   # when the bindings were last read (the cache counts: read at start)
         # Read ahead, so even the first open has them: the last read, kept on
         # disk, at once; the real read (seconds of CPU) a minute later, after
         # the login rush, when nothing is waiting for the CPU. Without a saved
@@ -467,14 +469,25 @@ class Plugin(Base):
         super().opened(args)
         self.peach = theme_hex("peach", "#fab387")
         self.accent = theme_hex("accent", "#cba6f7")
-        self.loaded = False  # bindings change as you edit configs: re-read on every open, behind the panel
+        # Bindings change as you edit configs: read them again behind the
+        # panel, but not on every open (the read is ~2 s of CPU, and parsing
+        # its answer inside Vyom held up the panel's frames: reopening took
+        # 50-180 ms): when the last read is older than `reload_after`
+        # seconds (default 120), a second after the panel shows.
+        after = self.conf.get("reload_after", 120)
+        if not isinstance(after, (int, float)) or isinstance(after, bool):
+            after = 120
+        if time.monotonic() - self.read_at >= after:
+            self.loaded = False
 
     def search(self, q):
         if not self.entries:
             self.load()
         elif not self.loaded:
             self.loaded = True
-            threading.Thread(target=self.reload_in_background, daemon=True).start()
+            self.read_at = time.monotonic()
+            GLib.timeout_add(1000, lambda: (threading.Thread(target=self.reload_in_background,
+                                                             daemon=True).start(), False)[1])
         q = q.strip()
         if self.keys_only and q and not q.lower().split()[0] in LEADER_WORDS:
             sq = [t for w in q.split() for t in seq_tokens(w)]

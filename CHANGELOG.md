@@ -4,6 +4,7 @@ Newest first. Releases are tags (`vX.Y.Z`).
 
 ## Unreleased
 
+- **Reopening is quick again**: the bindings are read again behind the panel only when the last read is older than `reload_after` seconds (default 120), a second after the panel shows, instead of on every open. The read is ~2 s of CPU (every config, a throwaway tmux server), and parsing its answer inside Vyom held up the panel's first frame: reopening took 50-180 ms, now 15-25 ms (with Vyom 0.11's kept rows).
 - Website: pranali joins the family list in the footer; the site builder passes ruff.
 - New screenshots in the Spatial look, taken with made-up demo data (WebP, sharp on high-density screens).
 - The website, closer to Vayu's own: the tool's screenshot blurred behind the page, a centred hero with the logo and the verse, the page you're on as the white pill, glass "On this page" and footer panels, releases as cards. No glow behind the logo, no coloured line beside the verse.

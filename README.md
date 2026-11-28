@@ -144,6 +144,7 @@ Everything is optional, in `~/.config/vyom/config.toml` under `[plugin.mudra]`:
 | Setting | Default | What it does |
 |---|---|---|
 | `source_command` | keybind-search.py --json (if installed) | Command printing the bindings as JSON |
+| `reload_after` | 120 | Seconds after a read before opening the panel reads the bindings again (behind the panel, a second after it shows) |
 
 Run `vyom reload` after editing.
 
