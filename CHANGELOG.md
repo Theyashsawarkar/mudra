@@ -2,7 +2,7 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
-## Unreleased
+## v0.7.0 -- 2026-11-28
 
 - **Reopening is quick again**: the bindings are read again behind the panel only when the last read is older than `reload_after` seconds (default 120), a second after the panel shows, instead of on every open. The read is ~2 s of CPU (every config, a throwaway tmux server), and parsing its answer inside Vyom held up the panel's first frame: reopening took 50-180 ms, now 15-25 ms (with Vyom 0.11's kept rows).
 - Website: pranali joins the family list in the footer; the site builder passes ruff.
